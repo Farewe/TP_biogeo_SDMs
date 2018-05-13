@@ -30,7 +30,7 @@ run.data <- BIOMOD_FormatingData(resp.var = P.points, # Points de presence de l'
 save(run.data, file = "run.data.RData")
 
 # 4.
-model.runs <- BIOMOD_Modeling(run.data, # Objet pr?paratoire
+model.runs <- BIOMOD_Modeling(run.data, # Objet preparatoire
                               models =  c('GLM', 'RF', 'GBM'), # Modeles que l'on va faire tourner
                               NbRunEval = 2, # Nombre de runs d'evaluation
                               DataSplit = 80, # Quantite de donnees utilisees pour la calibration des modeles
@@ -152,7 +152,8 @@ plot(suitability)
 SRC <- BIOMOD_RangeSize(current.binary[[1]], 
                         future8.5.binary[[1]])
 plot(SRC$Diff.By.Pixel,
-     col = c("#FF4100", "#3016B0", "#F2F2F2FF", "#2DD700"))
+     col = c("#FF4100", "#3016B0", "#F2F2F2FF", "#2DD700"),
+     legend = FALSE)
 legend(x = 75, y = 65, pch = 15, 
         col = c("#F2F2F2FF", "#FF4100", "#3016B0", "#2DD700"), 
         legend = c("Unsuitable", "Lost", "Kept", "New"),
