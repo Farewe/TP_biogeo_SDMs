@@ -1,0 +1,10 @@
+lieu	x	y
+Briere	-2.24	47.38
+Hourtin	-1.08	45.14
+Arles	4.70	43.70
+Sorgues	4.84	44.02
+Conzieu	5.61	45.71
+Lavour	5.74	45.84
+Lacanau	-1.13	45.04
+Algosheim	7.56	48.00
+Charpal	3.56	44.62

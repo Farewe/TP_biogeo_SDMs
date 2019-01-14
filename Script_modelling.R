@@ -13,7 +13,7 @@ future2.6 <- stack("future2_6")
 future8.5 <- stack("future8_5")
 
 # 2. 
-load("PresencePoints.RData") # Objet charge : P.points
+load("PresencePoints.RData") # Objet chargé : P.points
 
 wm <- getMap(resolution = "low")
 plot(current[[1]])
@@ -36,8 +36,8 @@ model.runs <- BIOMOD_Modeling(run.data, # Objet pr?paratoire
                               DataSplit = 80, # Quantite de donnees utilisees pour la calibration des modeles
                               # 80% pour la calibration, 20% pour la validation
                               SaveObj = T, # Sauver les objets de modelisation sur le disque dur
-                              Prevalence = 0.5, # Pour donner un poids egal aux points de pr?sence et pseudo-absences
-                              do.full.models = FALSE) # Ne pas faire une calibration sur 100% des donn?es
+                              Prevalence = 0.5, # Pour donner un poids egal aux points de présence et pseudo-absences
+                              do.full.models = FALSE) # Ne pas faire une calibration sur 100% des données
 save(model.runs, file = "model.runs")
 
 # 5.

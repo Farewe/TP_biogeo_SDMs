@@ -1,0 +1,6 @@
+lieu	x	y
+Lacs_Conzieu	5.609	45.7134
+Sorgues	4.852	44.01
+Saint_Germain	2.1	48.97
+Erdre	-1.51	47.33
+Lourdes	-0.01	43.11
