@@ -1,22 +1,23 @@
 # Atelier 3 - Phelsuma grandis
 library(biomod2)
-library(rworldmap)
 library(ggplot2)
-
+library(rworldmap)
+library(raster)
+library(reshape2)
 
 # Attention a bien ecrire le repertoire de travail dans la ligne suivante !
 wd <- "./Phelsumagrandis/"
 
 setwd(wd)
 
-# Chargement des données climatiques
+# Chargement des donnees climatiques
 current <- stack("current")
 future2.6 <- stack("future2_6")
 future8.5 <- stack("future8_5")
 
 
-# Chargement des données d'occurrence de l'espèce
-load("PresencePoints.RData") # Objet chargé : P.points
+# Chargement des donnees d'occurrence de l'espece
+load("PresencePoints.RData") # Objet charge : P.points
 
 
 wm <- getMap(resolution = "low")
@@ -125,7 +126,7 @@ ggplot(evals, aes(x = Model, y = value)) + geom_boxplot() + facet_grid(Metric ~ 
 get_evaluations(em.runs)[[1]]["TSS", "Cutoff"]
 
 
-# Cartes issues du modèle d'ensemble (environmental suitability) : 
+# Cartes issues du modele d'ensemble (environmental suitability) : 
 current.projection <- stack("./Phelsumagrandis/proj_current/proj_current_Phelsumagrandis_ensemble.grd")
 plot(current.projection)
 future2.6.projection <- stack("./Phelsumagrandis/proj_future2.6/proj_future2.6_Phelsumagrandis_ensemble.grd")
@@ -133,31 +134,31 @@ plot(future2.6.projection)
 future8.5.projection <- stack("./Phelsumagrandis/proj_future8.5/proj_future8.5_Phelsumagrandis_ensemble.grd")
 plot(future8.5.projection)
 
-# Création de raster stacks propres pour l'analyse
+# Creation de raster stacks propres pour l'analyse
 suitability <- stack(current.projection[[1]], 
                      future2.6.projection[[1]],
                      future8.5.projection[[1]])
 names(suitability) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
 
 
-# Cartes binaires (1/0) calculées à partir de la probabilité moyenne du modèle d'ensemble 
+# Cartes binaires (1/0) calculees a partir de la probabilite moyenne du modele d'ensemble 
 current.binary <- stack("Phelsumagrandis/proj_current/proj_current_Phelsumagrandis_ensemble_TSSbin")
 future2.6.binary <- stack("Phelsumagrandis/proj_future2.6/proj_future2.6_Phelsumagrandis_ensemble_TSSbin")
 future8.5.binary <- stack("Phelsumagrandis/proj_future8.5/proj_future8.5_Phelsumagrandis_ensemble_TSSbin")
 
-# Création de stacks propres pour l'analyse
-pa <- stack(current.binary[[1]], # Notez qu'on ne garde que la première couche (moyenne du modèle d'ensemble)  
+# Creation de stacks propres pour l'analyse
+pa <- stack(current.binary[[1]], # Notez qu'on ne garde que la premiere couche (moyenne du modele d'ensemble)  
             future2.6.binary[[1]],
             future8.5.binary[[1]])
 names(pa) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
 
-# Calcul de l'incertitude : écart type des probabilités de présences du modèle d'ensemble
+# Calcul de l'incertitude : ecart type des probabilitEs de presences du modele d'ensemble
 current.all <- stack("Phelsumagrandis/proj_current/proj_current_Phelsumagrandis.grd")
 future2.6.all <- stack("Phelsumagrandis/proj_future2.6/proj_future2.6_Phelsumagrandis.grd")
 future8.5.all <- stack("Phelsumagrandis/proj_future8.5/proj_future8.5_Phelsumagrandis.grd")
-# N'hésitez pas à afficher ces stacks pour voir l'ensemble des modèles individuels
+# N'hesitez pas a afficher ces stacks pour voir l'ensemble des modeles individuels
 
-# On crée un stack dans lequel on calcule l'écart type des probas de présence pour chaque projection
+# On cree un stack dans lequel on calcule l'ecart type des probas de presence pour chaque projection
 uncertainty <- stack(calc(current.all, sd), 
                      calc(future2.6.all, sd),
                      calc(future8.5.all, sd))

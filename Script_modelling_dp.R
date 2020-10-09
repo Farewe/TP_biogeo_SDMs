@@ -2,6 +2,8 @@
 library(biomod2)
 library(ggplot2)
 library(rworldmap)
+library(raster)
+library(reshape2)
 
 
 # Attention a bien ecrire le repertoire de travail dans la ligne suivante !
@@ -9,14 +11,14 @@ wd <- "./Dolomedesplantarius/"
 
 setwd(wd)
 
-# Chargement des données climatiques
+# Chargement des donn?es climatiques
 current <- stack("current")
 future2.6 <- stack("future2_6")
 future8.5 <- stack("future8_5")
 
 
-# Chargement des données d'occurrence de l'espèce
-load("PresencePoints.RData") # Objet chargé : P.points
+# Chargement des donn?es d'occurrence de l'esp?ce
+load("PresencePoints.RData") # Objet charg? : P.points
 
 
 
@@ -28,9 +30,9 @@ plot(wm, add = TRUE)
 
 
 #### Etape 1 : preparation des donnees pour la modelisation ####
-run.data <- BIOMOD_FormatingData(resp.var = P.points, # Points de presence de l'espèce
+run.data <- BIOMOD_FormatingData(resp.var = P.points, # Points de presence de l'esp?ce
                                  expl.var = current, # Donnees environnemental de calibration : climat 1950-2000
-                                 resp.name = "Dolomedesplantarius", # Nom de l'espèce
+                                 resp.name = "Dolomedesplantarius", # Nom de l'esp?ce
                                  PA.nb.rep = 2, # Nombre de runs de pseudo-absences
                                  PA.nb.absences = length(P.points)) # Nombre de pseudo-absences echantillonnees a chaque tour
 # On sauve l'objet a chaque fois :
@@ -38,9 +40,9 @@ save(run.data, file = "run.data")
 
 #### Etape 2 : calibration des modeles ####
 model.runs <- BIOMOD_Modeling(run.data, # Objet preparatoire
-                              models =  c('GLM', 'RF', 'GBM'), # Modèes que l'on va faire tourner
-                              NbRunEval = 2, # Nombre de runs d'évaluation
-                              DataSplit = 80, # Quantité de données utilisees pour la validation croisee des modeles
+                              models =  c('GLM', 'RF', 'GBM'), # Mod?es que l'on va faire tourner
+                              NbRunEval = 2, # Nombre de runs d'?valuation
+                              DataSplit = 80, # Quantit? de donn?es utilisees pour la validation croisee des modeles
                               # 80% pour la calibration, 20% pour la validation
                               SaveObj = T, # Sauver les objets de modelisation sur le disque dur
                               Prevalence = 0.5, # Pour donner un poids egal aux points de presence et pseudo-absences
@@ -127,7 +129,7 @@ ggplot(evals, aes(x = Model, y = value)) + geom_boxplot() + facet_grid(Metric ~ 
 seuil <- get_evaluations(em.runs)[[1]]["TSS", "Cutoff"]
 seuil
 
-# Cartes issues du modèle d'ensemble (environmental suitability) : 
+# Cartes issues du mod?le d'ensemble (environmental suitability) : 
 current.projection <- stack("./Dolomedesplantarius/proj_current/proj_current_Dolomedesplantarius_ensemble.grd")
 plot(current.projection)
 future2.6.projection <- stack("./Dolomedesplantarius/proj_future2.6/proj_future2.6_Dolomedesplantarius_ensemble.grd")
@@ -135,31 +137,31 @@ plot(future2.6.projection)
 future8.5.projection <- stack("./Dolomedesplantarius/proj_future8.5/proj_future8.5_Dolomedesplantarius_ensemble.grd")
 plot(future8.5.projection)
 
-# Création de raster stacks propres pour l'analyse
-suitability <- stack(current.projection[[1]], # Notez qu'on ne garde que la première couche (moyenne du modèle d'ensemble) 
+# Cr?ation de raster stacks propres pour l'analyse
+suitability <- stack(current.projection[[1]], # Notez qu'on ne garde que la premi?re couche (moyenne du mod?le d'ensemble) 
                      future2.6.projection[[1]],
                      future8.5.projection[[1]])
 names(suitability) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
 
 
-# Cartes binaires (1/0) calculées à partir de la probabilité moyenne du modèle d'ensemble 
+# Cartes binaires (1/0) calcul?es ? partir de la probabilit? moyenne du mod?le d'ensemble 
 current.binary <- stack("Dolomedesplantarius/proj_current/proj_current_Dolomedesplantarius_ensemble_TSSbin")
 future2.6.binary <- stack("Dolomedesplantarius/proj_future2.6/proj_future2.6_Dolomedesplantarius_ensemble_TSSbin")
 future8.5.binary <- stack("Dolomedesplantarius/proj_future8.5/proj_future8.5_Dolomedesplantarius_ensemble_TSSbin")
 
-# Création de stacks propres pour l'analyse
+# Cr?ation de stacks propres pour l'analyse
 pa <- stack(current.binary[[1]], 
             future2.6.binary[[1]],
             future8.5.binary[[1]])
 names(pa) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
 
-# Calcul de l'incertitude : écart type des probabilités s du modèle d'ensemble
+# Calcul de l'incertitude : ?cart type des probabilit?s s du mod?le d'ensemble
 current.all <- stack("Dolomedesplantarius/proj_current/proj_current_Dolomedesplantarius.grd")
 future2.6.all <- stack("Dolomedesplantarius/proj_future2.6/proj_future2.6_Dolomedesplantarius.grd")
 future8.5.all <- stack("Dolomedesplantarius/proj_future8.5/proj_future8.5_Dolomedesplantarius.grd")
-# N'hésitez pas à afficher ces stacks pour voir l'ensemble des modèles individuels
+# N'h?sitez pas ? afficher ces stacks pour voir l'ensemble des mod?les individuels
 
-# On crée un stack dans lequel on calcule l'écart type des probas de présence pour chaque projection
+# On cr?e un stack dans lequel on calcule l'?cart type des probas de pr?sence pour chaque projection
 uncertainty <- stack(calc(current.all, sd), 
                      calc(future2.6.all, sd),
                      calc(future8.5.all, sd))
@@ -167,7 +169,7 @@ names(uncertainty) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
 
 
 #### Cartes ####
-# 1. Probabilité de présence
+# 1. Probabilit? de pr?sence
 plot(suitability)
 
 # 2. Presence-absence

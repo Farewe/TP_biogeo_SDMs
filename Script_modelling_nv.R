@@ -1,7 +1,9 @@
-# Atelier 3 - Neon valentulus
+# Atelier 2 - Neon valentulus
 library(biomod2)
 library(ggplot2)
 library(rworldmap)
+library(raster)
+library(reshape2)
 
 
 # Attention a bien ecrire le repertoire de travail dans la ligne suivante !
