@@ -6,6 +6,11 @@ output: html_document
 
 Vous pouvez choisir parmi trois espèces différentes quelle répartition vous souhaitez modéliser. Veillez à bien mettre dans votre répertoire de travail R tous les fichiers de l’espèce sur laquelle vous souhaitez travailler.
 
+# Préparation des données
+
+[Téléchargez les données nécessaires au TP en cliquant ici](https://borisleroy.com/files/TP_biogeo_SDMs.zip)
+
+Extrayez les données dans un répertoire de travail pour R. 
 
 # 1. Chargement des données environnementales
 
@@ -212,3 +217,5 @@ Calculez les changements prédits de l’aire bioclimatique potentielle entre l�
 
 ### Aide R
 Fonction `BIOMOD_RangeSize` 
+
+
