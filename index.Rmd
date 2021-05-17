@@ -1,6 +1,9 @@
 ---
 title: "TP modélisation des aires de répartition"
-output: html_document
+output:
+  md_document:
+    variant: markdown_github
+    preserve_yaml: true
 ---
 
 

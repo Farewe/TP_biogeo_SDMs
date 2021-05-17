@@ -1,0 +1,274 @@
+---
+title: "TP modélisation des aires de répartition"
+output:
+  md_document:
+    variant: markdown_github
+    preserve_yaml: true
+---
+
+Vous pouvez choisir parmi trois espèces différentes quelle répartition
+vous souhaitez modéliser. Veillez à bien mettre dans votre répertoire de
+travail R tous les fichiers de l’espèce sur laquelle vous souhaitez
+travailler.
+
+Préparation des données
+=======================
+
+[Téléchargez les données nécessaires au TP en cliquant
+ici](https://borisleroy.com/files/TP_biogeo_SDMs.zip)
+
+Extrayez les données dans un répertoire de travail pour R.
+
+1. Chargement des données environnementales
+===========================================
+
+### Objectifs
+
+Chargez les rasters de données climatiques actuelles et futures.
+Affichez les différentes variables environnementales. Comparez les
+changements prédits entre 1960-1990 et 2050-2080.
+
+### Aide R
+
+Fonction `stack` du package raster pour charger les données. On peut
+afficher un raster stack avec la fonction `plot`. On peut sélectionner
+un sous-ensemble avec `[[ ]]`. On peut faire des opérations simples sur
+plusieurs rasters/stacks telles qu’une soustraction.
+
+| Variable | Description                                                | Unit       |
+|----------|------------------------------------------------------------|------------|
+| BIO1     | Annual Mean Temperature                                    | °C \* 10   |
+| BIO2     | Mean Diurnal Range (Mean of monthly (max temp - min temp)) | °C \* 10   |
+| BIO3     | Isothermality (BIO2/BIO7) (\* 100)                         | Unitless   |
+| BIO4     | Temperature Seasonality (standard deviation \*100)         | °C \* 1000 |
+| BIO5     | Max Temperature of Warmest Month                           | °C \* 10   |
+| BIO6     | Min Temperature of Coldest Month                           | °C \* 10   |
+| BIO7     | Temperature Annual Range (BIO5-BIO6)                       | °C \* 10   |
+| BIO8     | Mean Temperature of Wettest Quarter                        | °C \* 10   |
+| BIO9     | Mean Temperature of Driest Quarter                         | °C \* 10   |
+| BIO10    | Mean Temperature of Warmest Quarter                        | °C \* 10   |
+| BIO11    | Mean Temperature of Coldest Quarter                        | °C \* 10   |
+| BIO12    | Annual Precipitation                                       | mm         |
+| BIO13    | Precipitation of Wettest Month                             | mm         |
+| BIO14    | Precipitation of Driest Month                              | mm         |
+| BIO15    | Precipitation Seasonality (Coefficient of Variation)       | unitless   |
+| BIO16    | Precipitation of Wettest Quarter                           | mm         |
+| BIO17    | Precipitation of Driest Quarter                            | mm         |
+| BIO18    | Precipitation of Warmest Quarter                           | mm         |
+| BIO19    | Precipitation of Coldest Quarter                           | mm         |
+
+------------------------------------------------------------------------
+
+Attention aux unités ! Notez que dans ce TP vous utilisez la version 1.4
+de Worldclim. Depuis, la version 2.0 a été publié avec plusieurs
+changements, notamment dans les unités des variables. Soyez prudents
+avec les unités !
+
+2. Chargement des données d’occurrence
+======================================
+
+### Objectifs
+
+Chargez les données de présences d’espèces contenues dans
+`PresencePoints.RData`. Affichez les données de présence sur la carte
+d’une des variables environnementales actuelles. Ajoutez les limites des
+pays.
+
+### Aide R
+
+Fonction `load` pour charger les données. Fonction `getMap` du package
+rworldmap pour obtenir les limites des pays.
+
+Attention ! Ne redimensionnez pas la fenêtre sinon les coordonnées de
+l’espèce et les limites des pays ne correspondront plus au raster (bug).
+
+3. Préparation des données pour biomod
+======================================
+
+### Objectifs
+
+Préparez les données avec biomod2 dans un objet appelé `run.data`.
+Indiquez le nombre de runs de pseudo-absences que vous souhaitez faire,
+et le nombre de pseudo-absences que vous voulez générer. Sauvez
+`run.data` sur le disque dur
+
+### Aide R
+
+Fonction BIOMOD\_FormatingData et save :
+
+    run.data <- BIOMOD_FormatingData(resp.var = XXX, # Points de presence de l'espece
+                                     expl.var = YYY, # Donnees environnemental de calibration : climat 1950-2000
+                                     resp.name = "Nom_espece", # Nom de l'espece
+                                     PA.nb.rep = X, # Nombre de runs de pseudo-absences
+                                     PA.nb.absences = length(XXX)) # Nombre de pseudo-absences echantillonnees a chaque iteration
+    save(run.data, file = "run.data.RData")
+
+4. Calibration des modèles
+==========================
+
+### Objectifs
+
+Calibrez les modèles de niche et sauvez les dans un objet appelé
+`model.runs`. Choisissez trois modèles parmi ceux que biomod2 propose
+(éviter MaxEnt). Préciser votre protocole de calibration : répétitions
+d’évaluation-croisée, % du jeu de données alloué à la calibration.
+Sauvez l’objet `model.runs` sur le disque dur.
+
+### Aide R
+
+Fonction `BIOMOD_Modeling`
+
+    BIOMOD_Modeling(run.data, # Objet preparatoire
+                    models =  c('XXX', 'YYY', 'ZZZ'), # Modeles que l'on va faire tourner
+                    NbRunEval = X, # Nombre de runs d'evaluation
+                    DataSplit = X, # Quantite de donnees utilisees pour la validation croisee des modeles
+                    # X% pour la calibration, (100 - X)% pour la validation)
+
+5. Création du modèle d’ensemble
+================================
+
+### Objectifs
+
+Créez un modèle d’ensemble à partir des modèles individuels, dans un
+objet appelé « em.runs». Utilisez tous les modèles pour créer un modèle
+d’ensemble unique. Mettez un seuil de qualité basé sur le TSS à 0.6 (les
+modèles qui ont un TSS inférieur à 0.6 seront éliminés). Faites un
+modèle basé sur la moyenne des probabilités de présence avec
+l’incertitude à 95%. Sauvez l’objet em.runs sur le disque dur.
+
+### Aide R
+
+Fonction `BIOMOD_EnsembleModeling`
+
+    BIOMOD_EnsembleModeling(model.runs, # Objet issu de l'étape précédente
+                            em.by = 'all', # Faire UN modele d'ensemble avec TOUS les modeles calibres
+                            eval.metric = 'TSS', # Metrique de qualite utilisee pour supprimer les 'mauvais' modeles de l'EM
+                            eval.metric.quality.threshold = .6, # Seuil de suppression des 'mauvais' modeles
+                            # Ensuite, choisissez les types d'EM que vous voulez en mettant TRUE ou FALSE pour les arguments suivants
+                            prob.mean = X, # Moyenne des probas de presence issues des modeles
+                            prob.cv = X, # Coefficient de variation des probas de presence issues des modeles
+                            prob.ci = X, # Intervalle de confiance autour de la moyenne
+                            prob.ci.alpha = 0.05, # Seuil de l'IC (0.05 pour avoir l'IC 95%)
+                            prob.median = X, # Mediane des probas
+                            committee.averaging = X, # % de modeles predisant presence
+                            prob.mean.weight = X # Moyenne ponderee par les evals des modeles
+                            )
+
+6.1 Projection des cartes actuelles
+===================================
+
+### Objectifs 1
+
+Projetez les cartes de répartition actuelles de l’espèce à partir des
+modèles calibrés, dans un objet appelé `projection.current`. Fournissez
+bien les données environnementales actuelles à biomod2. Faites la
+conversion en présence-absence en optimisant la valeur du TSS. Sauvez
+l’objet `projection.current` sur le disque dur.
+
+### Aide R 1
+
+Fonction `BIOMOD_Projection`
+
+    BIOMOD_Projection(modeling.output = model.runs, # Objet issu de l'etape de calibration des modeles individuels
+                      new.env = XXX, # Donnees climatiques pour la projection
+                      proj.name = "XXX", # Nom de la projection (e.g., current)
+                      selected.models = 'all', # On projette tous les modeles
+                      binary.meth = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
+                      filtered.meth = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
+                      build.clamping.mask = X) # Souhaitez vous faire une carte qui montre les zones d'extrapolation ? 
+
+### Objectifs 2
+
+Projetez les cartes de répartition moyennes (= modèle d’ensemble).
+Faites la conversion en présence-absence en optimisant la valeur du TSS.
+
+### Aide R 2
+
+Fonction `BIOMOD_EnsembleForecasting`
+
+    BIOMOD_EnsembleForecasting(EM.output = em.runs,  # Objet issu de l'etape 5 (paramétrisation de l'ensemble modelling)
+                               projection.output = projection.current, # Projections a rassembler pour l'ensemble forecasting
+                               binary.meth = "TSS")
+
+6.2 Projection des cartes futures
+=================================
+
+Projetez ensuite les cartes de répartition futures suivant les deux
+scénarios en veillant bien à mettre des **noms explicites**, en
+reproduisant l’étape **6.1** pour chaque scénario.
+
+7. Evaluation des modèles
+=========================
+
+### Objectifs
+
+Récupérez les évaluations des modèles et évaluez la qualité de vos
+calibrations.
+
+### Aide R
+
+Fonction `get_evaluations` Exemple de script pour un graphique avec
+ggplot2 :
+
+    evals <- melt(evals)
+    colnames(evals) <- c("Metric", "Variable", "Model", "CV.Run", "PA", "value")
+    evals <- evals[which(evals$Metric %in% c("TSS", "ROC") & evals$Variable == "Testing.data"), ]
+    ggplot(evals, aes(x = Model, y = value)) + 
+      geom_boxplot() + 
+      facet_grid(Metric ~ .)
+
+8. Affichage des cartes de suitability
+======================================
+
+### Objectifs
+
+Affichez les cartes de suitability avec les sorties de
+`BIOMOD_EnsembleForecasting` de biomod2. Maintenant, refaites ces cartes
+mais cette fois-ci en chargeant les rasters depuis le disque dur sans
+passer par biomod. Elles sont localisées dans le dossier de votre
+espèce, puis dans le sous-dossier proj\_current (ou
+proj\_<nom de votre projection>). Dans ce sous-dossier il y a plusieurs
+fichiers. Chargez le fichier issu du modèle d’ensemble qui n’est pas
+converti en binaire.
+
+### Aide R
+
+Charger avec la fonction `stack` du package `raster`
+
+9. Affichage des aires bioclimatiques potentielles (« présence-absence »)
+=========================================================================
+
+### Objectifs
+
+Chargez les cartes binaires localisées dans le même sous-dossier qu’à
+l’étape 8, mais cette fois-ci en prenant le fichier issu du modèle
+d’ensemble qui est converti en binaire. Affichez ces cartes. Calculez la
+taille de l’aire actuelle de l’espèce.
+
+### Aide R
+
+La fonction `area` de raster donne la surface en km² de chaque pixel.
+
+10. Effet des changements climatiques sur la probabilité de présence de l’espèce
+================================================================================
+
+### Objectifs
+
+Affichez simultanément les cartes actuelles et futures de probabilité de
+présence de l’espèce. Qu’en déduisez-vous ?
+
+11. Changements prédits de l’aire bioclimatique potentielle
+===========================================================
+
+### Objectifs
+
+Calculez les changements prédits de l’aire bioclimatique potentielle
+entre l’actuel et le futur sous le scénario RCP 8.5. Affichez la carte
+des changements. Que pensez-vous de ces résultats ? Qu’en déduisez-vous
+quant au futur de votre espèce ?
+
+### Aide R
+
+Fonction `BIOMOD_RangeSize`
+
+[.](https://farewe.github.io/TP_biogeo_SDMs/corrections)
