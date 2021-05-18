@@ -1,7 +1,12 @@
 ---
-title: "Neon valentulus"
+title: "Correction du TP SDMs"
 output: html_document
 ---
+
+
+Sur cette page l'exemple utilisé est celui de *Neon valentulus*, mais le script est le même quelque soit l'espèce.
+
+Assurez-vous d'être dans le bon répertoire de travail pour pouvoir exécuter le script : le répertoire doit contenir tous les fichiers de l'espèce considérée.
 
 # 1. Chargement des données environnementales
 ```{r}

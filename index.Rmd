@@ -222,4 +222,4 @@ Pourquoi observe-t-on des différences entre nos calculs à l'étape 9 et cette 
 Fonction `BIOMOD_RangeSize` 
 
 
-[.](https://farewe.github.io/TP_biogeo_SDMs/corrections)
+[.](https://farewe.github.io/TP_biogeo_SDMs/corrections.html)
