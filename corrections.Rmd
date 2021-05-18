@@ -1,16 +1,286 @@
 ---
-  title: "TP modélisation des aires de répartition : corrections"
+title: "Neon valentulus"
 output: html_document
 ---
 
+# 1. Chargement des données environnementales
+```{r}
+library(biomod2)
+library(ggplot2)
+library(rworldmap)
+library(raster)
+library(reshape2)
 
-# Script corrigé pour *Dolomedes plantarius*
+# Assurez-vous d'être dans le bon répertoire de travail !!!!
+
+# Chargement des données climatiques
+current <- stack("current")
+future2.6 <- stack("future2_6")
+future8.5 <- stack("future8_5")
+
+plot(current)
+
+plot(current[[1]] - current [[2]])
+```
+
+# 2. Chargement des données d’occurrence
+
+```{r}
+# Chargement des données d'occurrence de l'espèce
+load("PresencePoints.RData") # Objet chargé : P.points
 
 
-# Script corrigé pour *Neon valentulus*
+wm <- getMap(resolution = "low")
+plot(current[[1]])
+plot(P.points, add = TRUE)
+plot(wm, add = TRUE)
+```
 
 
-# Script corrigé pour *Phelsuma grandis*
+# 3. Préparation des données pour biomod
+```{r}
+run.data <- BIOMOD_FormatingData(resp.var = P.points, # Points de presence de l'espece
+                                 expl.var = current, # Donnees environnemental de calibration : climat 1950-2000
+                                 resp.name = "Neonvalentulus", # Nom de l'espece
+                                 PA.nb.rep = 2, # Nombre de runs de pseudo-absences
+                                 PA.nb.absences = length(P.points)) # Nombre de pseudo-absences echantillonnees a chaque tour
+# On sauve l'objet a chaque fois :
+save(run.data, file = "run.data")
+```
+
+# 4. Calibration des modèles
+
+```{r}
+model.runs <- BIOMOD_Modeling(run.data, # Objet preparatoire
+                              models =  c('GLM', 'RF', 'GBM'), # Modeles que l'on va faire tourner
+                              NbRunEval = 2, # Nombre de runs d'evaluation
+                              DataSplit = 80, # Quantite de donnees utilisees pour la validation croisee des modeles
+                              # 80% pour la calibration, 20% pour la validation
+)
+save(model.runs, file = "model.runs")
+```
 
 
+# 5. Création du modèle d’ensemble
+
+```{r}
+em.runs <- BIOMOD_EnsembleModeling(model.runs, # Objet issu de l'etape 2
+                                   chosen.models = 'all', # Utiliser tous les modeles calibres
+                                   em.by = 'all', # Utiliser tous les modeles calibres
+                                   eval.metric = 'TSS', # Metrique de qualite utilisee pour supprimer les 'mauvais' modeles de l'EM
+                                   eval.metric.quality.threshold = .6, # Seuil de suppression des 'mauvais' modeles
+                                   prob.mean = TRUE, # Moyenne des probas de presence issues des modeles
+                                   prob.cv = FALSE, # Coefficient de variation des probas de presence issues des modeles
+                                   prob.ci = TRUE, # Intervalle de confiance autour de la moyenne
+                                   prob.ci.alpha = 0.05, # Seuil de l'IC (0.05 pour avoir l'IC 95%)
+                                   prob.median = FALSE, # Mediane des probas
+                                   committee.averaging = FALSE, # % de modeles predisant presence
+                                   prob.mean.weight = FALSE # Moyenne ponderee par les evals des modeles
+)
+
+
+save(em.runs, file = "em.runs")
+```
+
+
+# 6.1 Projection des cartes actuelles
+```{r}
+projection.current <- BIOMOD_Projection(modeling.output = model.runs, # Objet issu de l'etape 2 (calibration des modeles individuels)
+                                        new.env = current, # Donnees climatiques pour la projection
+                                        proj.name = "current", # Nom de la projection
+                                        selected.models = 'all', # On projette tous les modeles
+                                        binary.meth = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
+                                        filtered.meth = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
+                                        do.stack = TRUE, # Creer un stack avec les projections
+                                        build.clamping.mask = TRUE) # Pour identifier les zones ou le climat est tres different du climat  utilise lors de la calibration
+save(projection.current, file = "projection.current")
+
+ef.current <- BIOMOD_EnsembleForecasting(EM.output = em.runs,  # Objet issu de l'etape 3 (ensemble modelling)
+                                         projection.output = projection.current, # Projections a rassembler pour l'ensemble forecasting
+                                         binary.meth = "TSS")
+save(ef.current, file = "ef.current")
+```
+
+
+# 6.2 Projection des cartes futures
+
+```{r}
+##### Projection dans le climat futur, RCP 2.6 #####
+projection.future2.6 <- BIOMOD_Projection(modeling.output = model.runs, # Objet issu de l'etape 2 (calibration des modeles individuels)
+                                          new.env = future2.6, # Donnees climatiques pour la projection
+                                          proj.name = "future2.6", # Nom de la projection
+                                          selected.models = 'all', # On projette tous les modeles
+                                          binary.meth = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
+                                          filtered.meth = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
+                                          do.stack = TRUE, # Creer un stack avec les projections
+                                          build.clamping.mask = TRUE) # Pour identifier les zones ou le climat est tres different du climat  utilise lors de la calibration
+save(projection.future2.6, file = "projection.future2.6")
+
+ef.future2.6 <- BIOMOD_EnsembleForecasting(EM.output = em.runs,  # Objet issu de l'etape 3 (ensemble modelling)
+                                           projection.output = projection.future2.6, # Projections a rassembler pour l'ensemble forecasting
+                                           binary.meth = "TSS")
+save(ef.future2.6, file = "ef.future2.6")
+
+##### 4.3 Projection dans le climat futur, RCP 8.5 #####
+projection.future8.5 <- BIOMOD_Projection(modeling.output = model.runs, # Objet issu de l'etape 2 (calibration des modeles individuels)
+                                          new.env = future8.5, # Donnees climatiques pour la projection
+                                          proj.name = "future8.5", # Nom de la projection
+                                          selected.models = 'all', # On projette tous les modeles
+                                          binary.meth = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
+                                          filtered.meth = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
+                                          do.stack = TRUE, # Creer un stack avec les projections
+                                          build.clamping.mask = TRUE) # Pour identifier les zones ou le climat est tres different du climat  utilise lors de la calibration
+save(projection.future8.5, file = "projection.future8.5")
+
+ef.future8.5 <- BIOMOD_EnsembleForecasting(EM.output = em.runs,  # Objet issu de l'etape 3 (ensemble modelling)
+                                           projection.output = projection.future8.5, # Projections a rassembler pour l'ensemble forecasting
+                                           binary.meth = "TSS")
+save(ef.future8.5, file = "ef.future8.5")
+```
+
+
+# 7. Evaluation des modèles
+
+```{r}
+# Verification de la qualite des modeles
+evals <- melt(get_evaluations(model.runs))
+colnames(evals) <- c("Metric", "Variable", "Model", "CV.Run", "PA", "value")
+evals <- evals[which(evals$Metric %in% c("TSS", "ROC") & evals$Variable == "Testing.data"), ]
+ggplot(evals, aes(x = Model, y = value)) + geom_boxplot() + facet_grid(Metric ~ .)
+
+```
+
+
+
+```{r}
+# Voir le seuil de conversion de proba vers presence-absence :
+seuil <- get_evaluations(em.runs)[[1]]["TSS", "Cutoff"]
+seuil
+
+```
+
+
+# 8. Affichage des cartes de suitability
+
+### Objet issu de `BIOMOD_EnsembleForecasting`
+```{r}
+plot(ef.current)
+```
+
+
+
+### Récupération manuelle des rasters sur le disque
+```{r}
+# Cartes issues du modèle d'ensemble (environmental suitability) : 
+current.projection <- stack("./Neonvalentulus/proj_current/proj_current_Neonvalentulus_ensemble.grd")
+plot(current.projection)
+future2.6.projection <- stack("./Neonvalentulus/proj_future2.6/proj_future2.6_Neonvalentulus_ensemble.grd")
+plot(future2.6.projection)
+future8.5.projection <- stack("./Neonvalentulus/proj_future8.5/proj_future8.5_Neonvalentulus_ensemble.grd")
+plot(future8.5.projection)
+```
+
+
+# 9. Affichage des aires bioclimatiques potentielles (suitable vs. unsuitable)
+```{r}
+# Cartes binaires (1/0) calculées à partir de la probabilité moyenne du modèle d'ensemble 
+current.binary <- stack("Neonvalentulus/proj_current/proj_current_Neonvalentulus_ensemble_TSSbin")
+future2.6.binary <- stack("Neonvalentulus/proj_future2.6/proj_future2.6_Neonvalentulus_ensemble_TSSbin")
+future8.5.binary <- stack("Neonvalentulus/proj_future8.5/proj_future8.5_Neonvalentulus_ensemble_TSSbin")
+
+plot(current.binary)
+plot(future2.6.binary)
+plot(future8.5.binary)
+```
+
+```{r}
+# Create rasters containing the area of each suitable pixel
+current.area <- area(current.binary[[1]]) * current.binary[[1]]
+
+
+plot(current.area)
+
+# Calculate range size
+# Current
+cellStats(current.area,
+          stat = 'sum')
+
+```
+
+
+# 10. Effet des changements climatiques sur la probabilité de présence de l’espèce
+
+
+```{r}
+# Création de raster stacks propres pour la représentation graphique
+# Notez que je récupère la première couche du stack seulement. 
+# Dans mon cas il s'agit du modèle d'ensemble correspondant à la moyenne.
+# Vérifiez que vous prenez la bonne couche ici !
+suitability <- stack(current.projection[[1]], 
+                     future2.6.projection[[1]],
+                     future8.5.projection[[1]])
+# On va mettre des noms explicites pour le graphique
+names(suitability) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
+
+plot(suitability)
+
+pa <- stack(current.binary[[1]], 
+            future2.6.binary[[1]],
+            future8.5.binary[[1]])
+names(pa) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
+
+plot(pa)
+```
+
+C'est la cata pour le climat de cette espèce !!! Va-t-elle disparaître ? Impossible d'y répondre sans savoir si elle peut s'adapter ou pas, sans connaître l'état des populations, etc.! Mais en tout cas, le changement climatique se présente comme une menace sérieuse au vu de ce que l'on sait de cette espèce.
+
+# 11. Changements prédits de l’aire bioclimatique potentielle
+```{r}
+diff_rangesize <- BIOMOD_RangeSize(CurrentPred = current.binary[[1]],
+                                   FutureProj = future8.5.binary[[1]])
+
+plot(diff_rangesize$Diff.By.Pixel,
+     col = c("red", "blue", "white", "purple"))
+
+diff_rangesize
+```
+
+La différence d'aire est obtenue avec l'opération suivante : `future - 2 * current`
+où current et future sont les projections binaires actuelles et futures.
+
+Les pixels peuvent prendre 4 valeurs à l'issue de cette opération, en fonction de la valeur actuelle (1/0) et future (1/0) :
+
+| current | future | résultat | signification |
+|---------|--------|--------|--------|
+| 1 | 0 | -2 | aire qui devient défavorable dans le futur |
+| 1 | 1 | -1 | aire actuellement favorable qui reste favorable dans le futur |
+| 0 | 1 | 1 | aire actuellement défavorable qui devient favorable dans le futur |
+| 0 | 0 | 0 | aire défavorable (actuel et futur) |
+
+Calculez les changements prédits de l’aire bioclimatique potentielle entre l’actuel et le futur sous le scénario RCP 8.5. Affichez la carte des changements. Que pensez-vous de ces résultats ? Qu’en déduisez-vous quant au futur de votre espèce ?
+
+C'est la cata ! Le changement climatique apparait comme une menace sérieuse au vu des modèles. Il est important de s'intéresser à l'état de santé des populations pour s'assurer qu'elles vont pouvoir s'adapter aux CC à venir : adaptation, migration...
+
+
+Pourquoi observe-t-on des différences entre nos calculs à l'étape 9 et cette étape ? Que faut-il faire ?
+
+Les calculs ici sont en pixels, tandis que nos calculs à l'étape 9 étaient en km². Les pixels étant de tailles différentes, il vaut mieux éviter de faire des calculs en pixels, utilisez toujours les surfaces en km² !
+
+# Bonus : incertitude calculée avec l'écart-type de la suitability
+```{r}
+# Calcul de l'incertitude : écart type de suitability
+current.all <- stack("Neonvalentulus/proj_current/proj_current_Neonvalentulus.grd")
+future2.6.all <- stack("Neonvalentulus/proj_future2.6/proj_future2.6_Neonvalentulus.grd")
+future8.5.all <- stack("Neonvalentulus/proj_future8.5/proj_future8.5_Neonvalentulus.grd")
+# N'hésitez pas à afficher ces stacks pour voir l'ensemble des modèles individuels
+
+# On crée un stack dans lequel on calcule l'écart type des probas de présence pour chaque projection
+uncertainty <- stack(calc(current.all, sd), 
+                     calc(future2.6.all, sd),
+                     calc(future8.5.all, sd))
+names(uncertainty) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
+
+plot(uncertainty)
+
+```
 

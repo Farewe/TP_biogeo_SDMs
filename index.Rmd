@@ -194,7 +194,7 @@ Affichez les cartes de suitability avec les sorties de `BIOMOD_EnsembleForecasti
 
 Charger avec la fonction `stack` du package `raster` 
 
-# 9. Affichage des aires bioclimatiques potentielles (« présence-absence »)
+# 9. Affichage des aires bioclimatiques potentielles (suitable vs. unsuitable)
 
 ### Objectifs
 
@@ -205,16 +205,18 @@ Calculez la taille de l’aire actuelle de l’espèce.
 La fonction `area` de raster donne la surface en km² de chaque pixel.
 
 
-# 10. Effet des changements climatiques sur la probabilité de présence de l’espèce
+# 10. Effet des changements climatiques sur la suitability de l’espèce
 
 ### Objectifs
-Affichez simultanément les cartes actuelles et futures de probabilité de présence de l’espèce. Qu’en déduisez-vous ?
+Affichez simultanément les cartes actuelles et futures de suitability de l’espèce. Qu’en déduisez-vous ?
 
 
 # 11. Changements prédits de l’aire bioclimatique potentielle
 
 ### Objectifs
 Calculez les changements prédits de l’aire bioclimatique potentielle entre l’actuel et le futur sous le scénario RCP 8.5. Affichez la carte des changements. Que pensez-vous de ces résultats ? Qu’en déduisez-vous quant au futur de votre espèce ?
+
+Pourquoi observe-t-on des différences entre nos calculs à l'étape 9 et cette étape ? Que faut-il faire ?
 
 ### Aide R
 Fonction `BIOMOD_RangeSize` 
