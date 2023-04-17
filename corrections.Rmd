@@ -12,96 +12,95 @@ Assurez-vous d'être dans le bon répertoire de travail pour pouvoir exécuter l
 ```{r}
 library(biomod2)
 library(ggplot2)
-library(rworldmap)
 library(terra)
-library(reshape2)
+library(geodata)
 
 # Chargement des données climatiques
-current <- rast("data/baseline.tif")
-futuressp126 <- stack("ipsl_ssp245_2070.tif")
-futuressp585 <- stack("ipsl_ssp585_2070.tif")
+current <- rast("current.tif")
+futuressp126 <- rast("futuressp126.tif")
+futuressp585 <- rast("futuressp585.tif")
 
 plot(current)
 
-plot(current[[1]] - current [[2]])
+plot(futuressp585[[2]] - current [[2]])
 ```
 
 # 2. Chargement des données d’occurrence
 
 ```{r}
 # Chargement des données d'occurrence de l'espèce
-load("PresencePoints.RData") # Objet chargé : P.points
+P_points <- readRDS("P_points.RDS")
 
+# Carte du monde (package)
+wm <- world(path = "./")
 
-wm <- getMap(resolution = "low")
 plot(current[[1]])
-plot(P.points, add = TRUE)
+plot(P_points, add = TRUE)
 plot(wm, add = TRUE)
 ```
 
 
 # 3. Préparation des données pour biomod
 ```{r}
-run.data <- BIOMOD_FormatingData(resp.var = P.points, # Points de presence de l'espece
+run_data <- BIOMOD_FormatingData(resp.name = "Neonvalentulus", # Nom de l'espece
+                                 resp.var = P_points, # Points de presence de l'espece
                                  expl.var = current, # Donnees environnemental de calibration : climat 1950-2000
-                                 resp.name = "Neonvalentulus", # Nom de l'espece
                                  PA.nb.rep = 2, # Nombre de runs de pseudo-absences
-                                 PA.nb.absences = length(P.points)) # Nombre de pseudo-absences echantillonnees a chaque tour
+                                 PA.nb.absences = 1000) # Nombre de pseudo-absences echantillonnees a chaque tour
 # On sauve l'objet a chaque fois :
-save(run.data, file = "run.data")
+save(run_data, file = "run_data")
 ```
 
 # 4. Calibration des modèles
 
 ```{r}
-model.runs <- BIOMOD_Modeling(run.data, # Objet preparatoire
+model_runs <- BIOMOD_Modeling(run_data, # Objet preparatoire
                               models =  c('GLM', 'RF', 'GBM'), # Modeles que l'on va faire tourner
-                              NbRunEval = 2, # Nombre de runs d'evaluation
-                              DataSplit = 80, # Quantite de donnees utilisees pour la validation croisee des modeles
+                              nb.rep = 2, # Nombre de runs d'evaluation
+                              data.split.perc = 80, # Quantite de donnees utilisees pour la validation croisee des modeles
                               # 80% pour la calibration, 20% pour la validation
+                              prevalence = 0.5,
+                              do.full.models = FALSE,
+                              nb.cpu = 4
 )
-save(model.runs, file = "model.runs")
+save(model_runs, file = "model_runs")
 ```
 
 
 # 5. Création du modèle d’ensemble
 
 ```{r}
-em.runs <- BIOMOD_EnsembleModeling(model.runs, # Objet issu de l'etape 2
-                                   chosen.models = 'all', # Utiliser tous les modeles calibres
+em_runs <- BIOMOD_EnsembleModeling(model_runs, # Objet issu de l'etape 2
+                                   models.chosen = 'all', # Utiliser tous les modeles calibres
                                    em.by = 'all', # Utiliser tous les modeles calibres
-                                   eval.metric = 'TSS', # Metrique de qualite utilisee pour supprimer les 'mauvais' modeles de l'EM
-                                   eval.metric.quality.threshold = .6, # Seuil de suppression des 'mauvais' modeles
-                                   prob.mean = TRUE, # Moyenne des probas de presence issues des modeles
-                                   prob.cv = FALSE, # Coefficient de variation des probas de presence issues des modeles
-                                   prob.ci = TRUE, # Intervalle de confiance autour de la moyenne
-                                   prob.ci.alpha = 0.05, # Seuil de l'IC (0.05 pour avoir l'IC 95%)
-                                   prob.median = FALSE, # Mediane des probas
-                                   committee.averaging = FALSE, # % de modeles predisant presence
-                                   prob.mean.weight = FALSE # Moyenne ponderee par les evals des modeles
+                                   em.algo = c("EMmean", "EMci"),
+                                   metric.select = 'TSS', # Quelle métrique utiliser pour filtrer les mauvais modèles 
+                                     # ou pondérer la contribution des modèles dans l'EM ?
+                                   metric.select.thresh = 0.6, # Quel seuil de filtration des mauvais modèles ? 
+                                   metric.eval = c("TSS", "ROC"), # Quelles métriques utiliser pour évaluer l'EM ?
+                                   EMci.alpha = 0.05, # Seuil de l'IC (0.05 pour avoir l'IC 95%)
 )
 
 
-save(em.runs, file = "em.runs")
+save(em_runs, file = "em_runs")
 ```
 
 
 # 6.1 Projection des cartes actuelles
 ```{r}
-projection.current <- BIOMOD_Projection(modeling.output = model.runs, # Objet issu de l'etape 2 (calibration des modeles individuels)
+projection_current <- BIOMOD_Projection(bm.mod = model_runs, # Objet issu de l'etape 2 (calibration des modeles individuels)
                                         new.env = current, # Donnees climatiques pour la projection
                                         proj.name = "current", # Nom de la projection
-                                        selected.models = 'all', # On projette tous les modeles
-                                        binary.meth = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
-                                        filtered.meth = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
-                                        do.stack = TRUE, # Creer un stack avec les projections
+                                        models.chosen = 'all', # On projette tous les modeles
+                                        metric.binary = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
+                                        metric.filter = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
                                         build.clamping.mask = TRUE) # Pour identifier les zones ou le climat est tres different du climat  utilise lors de la calibration
-save(projection.current, file = "projection.current")
+save(projection_current, file = "projection_current")
 
-ef.current <- BIOMOD_EnsembleForecasting(EM.output = em.runs,  # Objet issu de l'etape 3 (ensemble modelling)
-                                         projection.output = projection.current, # Projections a rassembler pour l'ensemble forecasting
-                                         binary.meth = "TSS")
-save(ef.current, file = "ef.current")
+ef_current <- BIOMOD_EnsembleForecasting(bm.em = em_runs,  # Objet issu de l'etape 3 (ensemble modelling)
+                                         bm.proj = projection_current, # Projections a rassembler pour l'ensemble forecasting
+                                         metric.binary = "TSS")
+save(ef_current, file = "ef_current")
 ```
 
 
@@ -109,36 +108,34 @@ save(ef.current, file = "ef.current")
 
 ```{r}
 ##### Projection dans le climat futur, RCP 2.6 #####
-projection.future2.6 <- BIOMOD_Projection(modeling.output = model.runs, # Objet issu de l'etape 2 (calibration des modeles individuels)
-                                          new.env = future2.6, # Donnees climatiques pour la projection
-                                          proj.name = "future2.6", # Nom de la projection
-                                          selected.models = 'all', # On projette tous les modeles
-                                          binary.meth = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
-                                          filtered.meth = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
-                                          do.stack = TRUE, # Creer un stack avec les projections
+projection_futuressp126 <- BIOMOD_Projection(bm.mod = model_runs, # Objet issu de l'etape 2 (calibration des modeles individuels)
+                                          new.env = futuressp126, # Donnees climatiques pour la projection
+                                          proj.name = "futuressp126", # Nom de la projection
+                                          models.chosen = 'all', # On projette tous les modeles
+                                          metric.binary = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
+                                          metric.filter = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
                                           build.clamping.mask = TRUE) # Pour identifier les zones ou le climat est tres different du climat  utilise lors de la calibration
-save(projection.future2.6, file = "projection.future2.6")
+save(projection_futuressp126, file = "futuressp126")
 
-ef.future2.6 <- BIOMOD_EnsembleForecasting(EM.output = em.runs,  # Objet issu de l'etape 3 (ensemble modelling)
-                                           projection.output = projection.future2.6, # Projections a rassembler pour l'ensemble forecasting
-                                           binary.meth = "TSS")
-save(ef.future2.6, file = "ef.future2.6")
+ef_futuressp126 <- BIOMOD_EnsembleForecasting(bm.em = em_runs,  # Objet issu de l'etape 3 (ensemble modelling)
+                                              bm.proj = projection_futuressp126, # Projections a rassembler pour l'ensemble forecasting
+                                              metric.binary = "TSS")
+save(ef_futuressp126, file = "ef_futuressp126")
 
 ##### 4.3 Projection dans le climat futur, RCP 8.5 #####
-projection.future8.5 <- BIOMOD_Projection(modeling.output = model.runs, # Objet issu de l'etape 2 (calibration des modeles individuels)
-                                          new.env = future8.5, # Donnees climatiques pour la projection
-                                          proj.name = "future8.5", # Nom de la projection
-                                          selected.models = 'all', # On projette tous les modeles
-                                          binary.meth = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
-                                          filtered.meth = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
-                                          do.stack = TRUE, # Creer un stack avec les projections
-                                          build.clamping.mask = TRUE) # Pour identifier les zones ou le climat est tres different du climat  utilise lors de la calibration
-save(projection.future8.5, file = "projection.future8.5")
+projection_futuressp585 <- BIOMOD_Projection(bm.mod = model_runs, # Objet issu de l'etape 2 (calibration des modeles individuels)
+                                             new.env = futuressp585, # Donnees climatiques pour la projection
+                                             proj.name = "futuressp585", # Nom de la projection
+                                             models.chosen = 'all', # On projette tous les modeles
+                                             metric.binary = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
+                                             metric.filter = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
+                                             build.clamping.mask = TRUE) # Pour identifier les zones ou le climat est tres different du climat  utilise lors de la calibration
+save(projection_futuressp585, file = "projection_futuressp585")
 
-ef.future8.5 <- BIOMOD_EnsembleForecasting(EM.output = em.runs,  # Objet issu de l'etape 3 (ensemble modelling)
-                                           projection.output = projection.future8.5, # Projections a rassembler pour l'ensemble forecasting
-                                           binary.meth = "TSS")
-save(ef.future8.5, file = "ef.future8.5")
+ef_futuressp585 <- BIOMOD_EnsembleForecasting(bm.em = em_runs,  # Objet issu de l'etape 3 (ensemble modelling)
+                                           bm.proj = projection_futuressp585, # Projections a rassembler pour l'ensemble forecasting
+                                           metric.binary = "TSS")
+save(ef_futuressp585, file = "ef_futuressp585")
 ```
 
 
@@ -146,10 +143,8 @@ save(ef.future8.5, file = "ef.future8.5")
 
 ```{r}
 # Verification de la qualite des modeles
-evals <- melt(get_evaluations(model.runs))
-colnames(evals) <- c("Metric", "Variable", "Model", "CV.Run", "PA", "value")
-evals <- evals[which(evals$Metric %in% c("TSS", "ROC") & evals$Variable == "Testing.data"), ]
-ggplot(evals, aes(x = Model, y = value)) + geom_boxplot() + facet_grid(Metric ~ .)
+evals <- get_evaluations(model_runs)
+ggplot(evals, aes(x = algo, y = validation)) + geom_boxplot() + facet_grid(metric.eval ~ .)
 
 ```
 
@@ -157,7 +152,7 @@ ggplot(evals, aes(x = Model, y = value)) + geom_boxplot() + facet_grid(Metric ~ 
 
 ```{r}
 # Voir le seuil de conversion de proba vers presence-absence :
-seuil <- get_evaluations(em.runs)[[1]]["TSS", "Cutoff"]
+seuil <- get_evaluations(em_runs)[, "cutoff"]
 seuil
 
 ```
@@ -167,7 +162,7 @@ seuil
 
 ### Objet issu de `BIOMOD_EnsembleForecasting`
 ```{r}
-plot(ef.current)
+# plot(ef_current)
 ```
 
 
@@ -175,38 +170,39 @@ plot(ef.current)
 ### Récupération manuelle des rasters sur le disque
 ```{r}
 # Cartes issues du modèle d'ensemble (environmental suitability) : 
-current.projection <- stack("./Neonvalentulus/proj_current/proj_current_Neonvalentulus_ensemble.grd")
-plot(current.projection)
-future2.6.projection <- stack("./Neonvalentulus/proj_future2.6/proj_future2.6_Neonvalentulus_ensemble.grd")
-plot(future2.6.projection)
-future8.5.projection <- stack("./Neonvalentulus/proj_future8.5/proj_future8.5_Neonvalentulus_ensemble.grd")
-plot(future8.5.projection)
+current_projection <- rast("./Neonvalentulus/proj_current/proj_current_Neonvalentulus_ensemble.tif")
+plot(current_projection)
+proj_futuressp126_projection <- rast("./Neonvalentulus/proj_futuressp126/proj_futuressp126_Neonvalentulus_ensemble.tif")
+plot(proj_futuressp126_projection)
+proj_futuressp585_projection <- rast("./Neonvalentulus/proj_futuressp585/proj_futuressp585_Neonvalentulus_ensemble.tif")
+plot(proj_futuressp585_projection)
 ```
 
 
 # 9. Affichage des aires bioclimatiques potentielles (suitable vs. unsuitable)
 ```{r}
 # Cartes binaires (1/0) calculées à partir de la probabilité moyenne du modèle d'ensemble 
-current.binary <- stack("Neonvalentulus/proj_current/proj_current_Neonvalentulus_ensemble_TSSbin")
-future2.6.binary <- stack("Neonvalentulus/proj_future2.6/proj_future2.6_Neonvalentulus_ensemble_TSSbin")
-future8.5.binary <- stack("Neonvalentulus/proj_future8.5/proj_future8.5_Neonvalentulus_ensemble_TSSbin")
+current_binary <- rast("Neonvalentulus/proj_current/proj_current_Neonvalentulus_ensemble_TSSbin.tif")
+futuressp126_binary <- rast("Neonvalentulus/proj_futuressp126/proj_futuressp126_Neonvalentulus_ensemble_TSSbin.tif")
+futuressp585_binary <- rast("Neonvalentulus/proj_futuressp585/proj_futuressp585_Neonvalentulus_ensemble_TSSbin.tif")
 
-plot(current.binary)
-plot(future2.6.binary)
-plot(future8.5.binary)
+plot(current_binary)
+plot(futuressp126_binary)
+plot(futuressp585_binary)
 ```
 
 ```{r}
 # Create rasters containing the area of each suitable pixel
-current.area <- area(current.binary[[1]]) * current.binary[[1]]
+current_area <- cellSize(current_binary[[1]]) * current_binary[[1]]
 
 
-plot(current.area)
+plot(current_area)
 
 # Calculate range size
 # Current
-cellStats(current.area,
-          stat = 'sum')
+global(current_area,
+       stat = 'sum',
+       na.rm = TRUE)
 
 ```
 
@@ -219,18 +215,18 @@ cellStats(current.area,
 # Notez que je récupère la première couche du stack seulement. 
 # Dans mon cas il s'agit du modèle d'ensemble correspondant à la moyenne.
 # Vérifiez que vous prenez la bonne couche ici !
-suitability <- stack(current.projection[[1]], 
-                     future2.6.projection[[1]],
-                     future8.5.projection[[1]])
+suitability <- c(current_projection[[1]], 
+                 futuressp126[[1]],
+                 futuressp585[[1]])
 # On va mettre des noms explicites pour le graphique
-names(suitability) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
+names(suitability) <- c("Current", "Future SSP1-2.6", "Future SSP5-8.5")
 
 plot(suitability)
 
-pa <- stack(current.binary[[1]], 
-            future2.6.binary[[1]],
-            future8.5.binary[[1]])
-names(pa) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
+pa <- c(current_binary[[1]], 
+        futuressp126_binary[[1]],
+        futuressp585_binary[[1]])
+names(pa) <- c("Current", "Future SSP1-2.6", "Future SSP5-8.5")
 
 plot(pa)
 ```
@@ -239,8 +235,8 @@ C'est la cata pour le climat de cette espèce !!! Va-t-elle disparaître ? Impos
 
 # 11. Changements prédits de l’aire bioclimatique potentielle
 ```{r}
-diff_rangesize <- BIOMOD_RangeSize(CurrentPred = current.binary[[1]],
-                                   FutureProj = future8.5.binary[[1]])
+diff_rangesize <- BIOMOD_RangeSize(proj.current = current_binary[[1]],
+                                   proj.future = futuressp585_binary[[1]])
 
 plot(diff_rangesize$Diff.By.Pixel,
      col = c("red", "blue", "white", "purple"))
@@ -272,16 +268,16 @@ Les calculs ici sont en pixels, tandis que nos calculs à l'étape 9 étaient en
 # Bonus : incertitude calculée avec l'écart-type de la suitability
 ```{r}
 # Calcul de l'incertitude : écart type de suitability
-current.all <- stack("Neonvalentulus/proj_current/proj_current_Neonvalentulus.grd")
-future2.6.all <- stack("Neonvalentulus/proj_future2.6/proj_future2.6_Neonvalentulus.grd")
-future8.5.all <- stack("Neonvalentulus/proj_future8.5/proj_future8.5_Neonvalentulus.grd")
+current_all <- rast("Neonvalentulus/proj_current/proj_current_Neonvalentulus.tif")
+futuressp126_all <- rast("Neonvalentulus/proj_futuressp126/proj_futuressp126_Neonvalentulus.tif")
+futuressp585_all <- rast("Neonvalentulus/proj_futuressp585/proj_futuressp585_Neonvalentulus.tif")
 # N'hésitez pas à afficher ces stacks pour voir l'ensemble des modèles individuels
 
 # On crée un stack dans lequel on calcule l'écart type des probas de présence pour chaque projection
-uncertainty <- stack(calc(current.all, sd), 
-                     calc(future2.6.all, sd),
-                     calc(future8.5.all, sd))
-names(uncertainty) <- c("Current", "Future RCP 2.6", "Future RCP 8.5")
+uncertainty <- c(app(current_all, sd), 
+                 app(futuressp126_all, sd),
+                 app(futuressp585_all, sd))
+names(uncertainty) <- c("Current", "Future SSP1-2.6", "Future SSP5-8.5")
 
 plot(uncertainty)
 
