@@ -13,15 +13,13 @@ Assurez-vous d'être dans le bon répertoire de travail pour pouvoir exécuter l
 library(biomod2)
 library(ggplot2)
 library(rworldmap)
-library(raster)
+library(terra)
 library(reshape2)
 
-# Assurez-vous d'être dans le bon répertoire de travail !!!!
-
 # Chargement des données climatiques
-current <- stack("current")
-future2.6 <- stack("future2_6")
-future8.5 <- stack("future8_5")
+current <- rast("data/baseline.tif")
+futuressp126 <- stack("ipsl_ssp245_2070.tif")
+futuressp585 <- stack("ipsl_ssp585_2070.tif")
 
 plot(current)
 
