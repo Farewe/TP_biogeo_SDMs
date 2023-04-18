@@ -17,11 +17,20 @@ Extrayez les données dans un répertoire de travail pour R.
 
 ### Objectifs
 
-Chargez les rasters de données climatiques actuelles et futures. Affichez les différentes variables environnementales. Comparez les changements prédits entre 1960-1990 et 2050-2080.
+Chargez les rasters de données climatiques actuelles et futures. Affichez les
+différentes variables environnementales sur la période historique.
+Comparez les changements prédits entre 
+la période historique et la période 2050-2080 sur la variable de température 
+minimale du mois le plus froid.
 
 ### Aide R
 
-Fonction `stack` du package raster pour charger les données. On peut afficher un raster stack avec la fonction `plot`. On peut sélectionner un sous-ensemble avec `[[ ]]`. On peut faire des opérations simples sur plusieurs rasters/stacks telles qu’une soustraction.
+Vous allez utiliser le package `terra` qui permet de traiter des données 
+spatiales sous R. Pour lire un raster, il faut utiliser la fonction `rast()` du 
+package `terra`. On peut afficher un raster stack avec la fonction `plot()`. 
+Quand le raster chargé est un stack (= empilement de plusieurs couches rasters),
+on peut sélectionner un sous-ensemble avec `[[ ]]`. On peut faire des opérations
+simples sur plusieurs rasters/stacks telles qu’une soustraction.
 
 
 | Variable | Description | Unit  |
@@ -48,40 +57,45 @@ Fonction `stack` du package raster pour charger les données. On peut afficher u
 
 
 -------
-Attention aux unités ! Notez que dans ce TP vous utilisez la version 1.4 de Worldclim. Depuis, la version 2.0 a été publié avec plusieurs changements, notamment dans les unités des variables. Soyez prudents avec les unités !
 
 
 # 2. Chargement des données d’occurrence
 
 ### Objectifs
 
-Chargez les données de présences d’espèces contenues dans `PresencePoints.RData`. 
+Chargez les données de présences d’espèces contenues dans `P_points.RDS`. 
 Affichez les données de présence sur la carte d’une des variables environnementales actuelles. Ajoutez les limites des pays.
 
 ### Aide R
 
-Fonction `load` pour charger les données. Fonction `getMap` du package rworldmap pour obtenir les limites des pays.
-
-
-Attention ! Ne redimensionnez pas la fenêtre sinon les coordonnées de l’espèce et les limites des pays ne correspondront plus au raster (bug).
+Pour lire un fichier RDS dans R il faut utiliser la fonction `readRDS()`.
+Pour avoir les limites des pays, on peut soit télécharger les données depuis 
+un site tel quel natural earth data, soit utiliser le package `geodata`, avec 
+par exemple la fonction `world()` qui retourne les limites des pays.
 
 
 # 3. Préparation des données pour biomod
 
 ### Objectifs
 
-Préparez les données avec biomod2 dans un objet appelé `run.data`. Indiquez le nombre de runs de pseudo-absences que vous souhaitez faire, et le nombre de pseudo-absences que vous voulez générer.  Sauvez `run.data` sur le disque dur
+Préparez les données avec biomod2 dans un objet appelé `run_data`.
+Indiquez le nombre de runs de pseudo-absences que vous souhaitez faire (par 
+exemple, ici, faites deux runs), et le 
+nombre de pseudo-absences que vous voulez générer (par exemple ici, 1000 pseudo-
+absences). 
+Sauvez `run_data` sur le disque dur
 
 ### Aide R
 
-Fonction BIOMOD_FormatingData et save  :
+Fonctions `BIOMOD_FormatingData()` et `save()`  :
 ```
-run.data <- BIOMOD_FormatingData(resp.var = XXX, # Points de presence de l'espece
-                                 expl.var = YYY, # Donnees environnemental de calibration : climat 1950-2000
-                                 resp.name = "Nom_espece", # Nom de l'espece
-                                 PA.nb.rep = X, # Nombre de runs de pseudo-absences
-                                 PA.nb.absences = length(XXX)) # Nombre de pseudo-absences echantillonnees a chaque iteration
-save(run.data, file = "run.data.RData")
+run_data <- BIOMOD_FormatingData(resp.name = "Nom_espece", # Nom de l'espece
+                                 resp.var = YYY, # Points de presence de l'espece
+                                 expl.var = XXX, # Donnees environnemental de calibration : climat 1950-2000
+                                 PA.nb.rep = ZZZ, # Nombre de runs de pseudo-absences
+                                 PA.nb.absences = AAA) # Nombre de pseudo-absences echantillonnees a chaque tour
+                                 
+save(run_data, file = "run_data")
 ```
 
 # 4. Calibration des modèles
@@ -89,43 +103,42 @@ save(run.data, file = "run.data.RData")
 
 ### Objectifs
 
-Calibrez les modèles de niche et sauvez les dans un objet appelé `model.runs`. Choisissez trois modèles parmi ceux que biomod2 propose (éviter MaxEnt). Préciser votre protocole de calibration : répétitions d’évaluation-croisée, % du jeu de données alloué à la calibration. Sauvez l’objet `model.runs` sur le disque dur.
+Calibrez les modèles de niche et sauvez les dans un objet appelé `model_runs`. Choisissez trois modèles parmi ceux que biomod2 propose (éviter MaxEnt). Préciser un protocole de calibration simple : 2 répétitions d’évaluation-croisée, 80 % du jeu de données alloué à la calibration et 20% pour l'évaluation, poids équilibrés entre présences et pseudo-absences. Sauvez l’objet `model_runs` sur le disque dur.
 
 ### Aide R
 
-Fonction `BIOMOD_Modeling`
+Fonction `BIOMOD_Modeling()`
 ```
-BIOMOD_Modeling(run.data, # Objet preparatoire
+BIOMOD_Modeling(run_data, # Objet preparatoire
                 models =  c('XXX', 'YYY', 'ZZZ'), # Modeles que l'on va faire tourner
-                NbRunEval = X, # Nombre de runs d'evaluation
-                DataSplit = X, # Quantite de donnees utilisees pour la validation croisee des modeles
+                nb.rep = X, # Nombre de runs d'evaluation
+                data.split.perc = Y, # Quantite de donnees utilisees pour la validation croisee des modeles
                 # X% pour la calibration, (100 - X)% pour la validation)
+                prevalence = 0.5, # Equilibre des poids entre présences et pseudo-absences
+)
 ```
 
 # 5. Création du modèle d’ensemble
 
 ### Objectifs
 
-Créez un modèle d’ensemble à partir des modèles individuels, dans un objet appelé « em.runs». Utilisez tous les modèles pour créer un modèle d’ensemble unique. Mettez un seuil de qualité basé sur le TSS à 0.6 (les modèles qui ont un TSS inférieur à 0.6 seront éliminés). Faites un modèle basé sur la moyenne des probabilités de présence avec l’incertitude à 95%. Sauvez l’objet em.runs sur le disque dur.
+Créez un modèle d’ensemble à partir de vos trois modèles individuels, dans un objet appelé `em_runs`. Utilisez tous les modèles pour créer un modèle d’ensemble unique qui
+sera la moyenne des probabilités de présence de tous les modèles individuels. Eliminez les mauvais modèles du modèle
+d'ensemble, en mettant un seuil de qualité minimale à 0.6 pour la métrique TSS. Sauvez l’objet em_runs sur le disque dur.
 
 ### Aide R
 
-Fonction `BIOMOD_EnsembleModeling`
+Fonction `BIOMOD_EnsembleModeling()`
 
 ```
-BIOMOD_EnsembleModeling(model.runs, # Objet issu de l'étape précédente
-                        em.by = 'all', # Faire UN modele d'ensemble avec TOUS les modeles calibres
-                        eval.metric = 'TSS', # Metrique de qualite utilisee pour supprimer les 'mauvais' modeles de l'EM
-                        eval.metric.quality.threshold = .6, # Seuil de suppression des 'mauvais' modeles
-                        # Ensuite, choisissez les types d'EM que vous voulez en mettant TRUE ou FALSE pour les arguments suivants
-                        prob.mean = X, # Moyenne des probas de presence issues des modeles
-                        prob.cv = X, # Coefficient de variation des probas de presence issues des modeles
-                        prob.ci = X, # Intervalle de confiance autour de la moyenne
-                        prob.ci.alpha = 0.05, # Seuil de l'IC (0.05 pour avoir l'IC 95%)
-                        prob.median = X, # Mediane des probas
-                        committee.averaging = X, # % de modeles predisant presence
-                        prob.mean.weight = X # Moyenne ponderee par les evals des modeles
-                        )
+BIOMOD_EnsembleModeling(model_runs, # Objet issu de l'etape 4
+                        models.chosen = 'all', # Faire UN modele d'ensemble avec TOUS les modeles calibres
+                        em.by = 'all', # Combiner tous les modèles ensemble 
+                        em.algo = XXX, # Faire la moyenne des probabilités individuelles
+                        metric.select = YYY, # Quelle métrique utiliser pour filtrer les mauvais modèles 
+                        metric.select.thresh = ZZZ, # Quel seuil de filtration des mauvais modèles ? 
+                        metric.eval = c("TSS", "ROC"), # Quelles métriques utiliser pour évaluer l'EM ?
+)
 ```
 
 
@@ -133,19 +146,19 @@ BIOMOD_EnsembleModeling(model.runs, # Objet issu de l'étape précédente
 
 ### Objectifs 1
 
-Projetez les cartes de répartition actuelles de l’espèce à partir des modèles calibrés, dans un objet appelé `projection.current`.  Fournissez bien les données environnementales actuelles à biomod2. Faites la conversion en présence-absence en optimisant la valeur du TSS.  Sauvez l’objet `projection.current` sur le disque dur.
+Projetez les cartes de répartition actuelles de l’espèce à partir des modèles calibrés, dans un objet appelé `projection_current`.  Fournissez bien les données environnementales actuelles à biomod2 pour qu'il projette la répartition dessus. Faites la conversion en présence-absence en demandant à biomod d'utiliser le seuil qui optimise la valeur du TSS.
+Sauvez l’objet `projection_current` sur le disque dur.
 
 ### Aide R 1
 
 Fonction `BIOMOD_Projection`
 ```
-BIOMOD_Projection(modeling.output = model.runs, # Objet issu de l'etape de calibration des modeles individuels
+BIOMOD_Projection(bm.mod = model_runs, # Objet issu de l'etape 4 (calibration des modeles individuels)
                   new.env = XXX, # Donnees climatiques pour la projection
-                  proj.name = "XXX", # Nom de la projection (e.g., current)
-                  selected.models = 'all', # On projette tous les modeles
-                  binary.meth = "TSS", # Metrique utilisee pour transformer la proba de presence en presence-absence
-                  filtered.meth = "TSS", # Metrique utilisee pour filtrer les 'mauvais' modeles
-                  build.clamping.mask = X) # Souhaitez vous faire une carte qui montre les zones d'extrapolation ? 
+                  proj.name = "XXX", # Nom de la projection
+                  models.chosen = 'all', # On projette tous les modeles
+                  metric.binary = "TSS" # Metrique utilisee pour transformer la proba de presence en presence-absence) # Pour identifier les zones ou le climat est tres different du climat  utilise lors de la calibration
+                          
 ```
 
 ### Objectifs 2
@@ -156,9 +169,9 @@ Projetez les cartes de répartition moyennes (= modèle d’ensemble). Faites la
 ### Aide R 2 
 Fonction `BIOMOD_EnsembleForecasting`
 ```
-BIOMOD_EnsembleForecasting(EM.output = em.runs,  # Objet issu de l'etape 5 (paramétrisation de l'ensemble modelling)
-                           projection.output = projection.current, # Projections a rassembler pour l'ensemble forecasting
-                           binary.meth = "TSS")
+BIOMOD_EnsembleForecasting(bm.em = em_runs,  # Objet issu de l'etape 5 (paramétrisation de l'ensemble modelling)
+                           bm.proj = projection_current, # Projections a rassembler pour l'ensemble forecasting
+                           metric.binary = "TSS")
 ```
 
 # 6.2 Projection des cartes futures
@@ -172,37 +185,44 @@ Projetez ensuite les cartes de répartition futures suivant les deux scénarios 
 Récupérez les évaluations des modèles et évaluez la qualité de vos calibrations.
 
 ### Aide R
-Fonction `get_evaluations`
+Fonction `get_evaluations()`
 Exemple de script pour un graphique avec ggplot2 :
 
 ```
-evals <- melt(evals)
-colnames(evals) <- c("Metric", "Variable", "Model", "CV.Run", "PA", "value")
-evals <- evals[which(evals$Metric %in% c("TSS", "ROC") & evals$Variable == "Testing.data"), ]
-ggplot(evals, aes(x = Model, y = value)) + 
-  geom_boxplot() + 
-  facet_grid(Metric ~ .)
+evals <- get_evaluations(model_runs)
+ggplot(evals, aes(x = algo, y = validation)) + geom_boxplot() + facet_grid(metric.eval ~ .)
 ```
+
+Il existe d'autres fonctions dans biomod2 pour afficher les évaluations, 
+n'hésitez pas à les explorer !
 
 # 8. Affichage des cartes de suitability
 
 ### Objectifs
 
-Affichez les cartes de suitability avec les sorties de `BIOMOD_EnsembleForecasting` de biomod2. Maintenant, refaites ces cartes mais cette fois-ci en chargeant les rasters depuis le disque dur sans passer par biomod. Elles sont localisées dans le dossier de votre espèce, puis dans le sous-dossier proj_current (ou proj_<nom de votre projection>). Dans ce sous-dossier il y a plusieurs fichiers. Chargez le fichier issu du modèle d’ensemble qui n’est pas converti en binaire.
+Affichez les cartes de suitability des modèles d'ensemble produits par biomod2, 
+en chargeant les rasters depuis le disque dur sans passer par biomod.
+Elles sont localisées dans le dossier de votre espèce, puis dans le sous-dossier
+proj_current (ou proj_<nom de votre projection>). Dans ce sous-dossier il y a 
+plusieurs fichiers. Chargez le fichier issu du modèle d’ensemble qui n’est pas
+converti en binaire (indice : le nom doit ressembler à
+`proj_<nom de la projection>_<nom espece>_ensemble.tif`)
 
 ### Aide R
 
-Charger avec la fonction `stack` du package `raster` 
+Charger avec la fonction `rast()` du package `terra` 
 
 # 9. Affichage des aires bioclimatiques potentielles (suitable vs. unsuitable)
 
 ### Objectifs
 
 Chargez les cartes binaires localisées dans le même sous-dossier qu’à l’étape 8, mais cette fois-ci en prenant le fichier issu du modèle d’ensemble qui est converti en binaire. Affichez ces cartes.
+(indice : le nom est identique qu'à l'étape 8, mais il contient `TSSbin` en plus)
+
 Calculez la taille de l’aire actuelle de l’espèce. 
 
 ### Aide R
-La fonction `area` de raster donne la surface en km² de chaque pixel.
+La fonction `cellSize()` de terra donne la surface en km² de chaque pixel.
 
 
 # 10. Effet des changements climatiques sur la suitability de l’espèce
@@ -214,7 +234,7 @@ Affichez simultanément les cartes actuelles et futures de suitability de l’es
 # 11. Changements prédits de l’aire bioclimatique potentielle
 
 ### Objectifs
-Calculez les changements prédits de l’aire bioclimatique potentielle entre l’actuel et le futur sous le scénario RCP 8.5. Affichez la carte des changements. Que pensez-vous de ces résultats ? Qu’en déduisez-vous quant au futur de votre espèce ?
+Calculez les changements prédits de l’aire bioclimatique potentielle entre l’actuel et le futur sous le scénario SSP 5 - 8.5. Affichez la carte des changements. Que pensez-vous de ces résultats ? Qu’en déduisez-vous quant au futur de votre espèce ?
 
 Pourquoi observe-t-on des différences entre nos calculs à l'étape 9 et cette étape ? Que faut-il faire ?
 
