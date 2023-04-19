@@ -1,32 +1,20 @@
----
-title: "TP modélisation des aires de répartition"
-output:
-  md_document:
-    variant: markdown_github
-    preserve_yaml: true
----
+Vous allez modéliser la distribution potentielle de l’espèce *Neon
+valentulus*.
 
-Vous pouvez choisir parmi trois espèces différentes quelle répartition
-vous souhaitez modéliser. Veillez à bien mettre dans votre répertoire de
-travail R tous les fichiers de l’espèce sur laquelle vous souhaitez
-travailler.
-
-Préparation des données
-=======================
+# Préparation des données
 
 [Téléchargez les données nécessaires au TP en cliquant
 ici](https://borisleroy.com/files/TP_biogeo_SDMs.zip)
 
 Extrayez les données dans un répertoire de travail pour R.
 
-1. Chargement des données environnementales
-===========================================
+# 1. Chargement des données environnementales
 
 ### Objectifs
 
 Chargez les rasters de données climatiques actuelles et futures.
 Affichez les différentes variables environnementales. Comparez les
-changements prédits entre 1960-1990 et 2050-2080.
+changements prédits entre 1970-2000 et 2050-2080.
 
 ### Aide R
 
@@ -36,7 +24,7 @@ un sous-ensemble avec `[[ ]]`. On peut faire des opérations simples sur
 plusieurs rasters/stacks telles qu’une soustraction.
 
 | Variable | Description                                                | Unit       |
-|----------|------------------------------------------------------------|------------|
+|----------|---------------------------------------------------|-----------|
 | BIO1     | Annual Mean Temperature                                    | °C \* 10   |
 | BIO2     | Mean Diurnal Range (Mean of monthly (max temp - min temp)) | °C \* 10   |
 | BIO3     | Isothermality (BIO2/BIO7) (\* 100)                         | Unitless   |
@@ -64,8 +52,7 @@ de Worldclim. Depuis, la version 2.0 a été publié avec plusieurs
 changements, notamment dans les unités des variables. Soyez prudents
 avec les unités !
 
-2. Chargement des données d’occurrence
-======================================
+# 2. Chargement des données d’occurrence
 
 ### Objectifs
 
@@ -82,8 +69,7 @@ rworldmap pour obtenir les limites des pays.
 Attention ! Ne redimensionnez pas la fenêtre sinon les coordonnées de
 l’espèce et les limites des pays ne correspondront plus au raster (bug).
 
-3. Préparation des données pour biomod
-======================================
+# 3. Préparation des données pour biomod
 
 ### Objectifs
 
@@ -94,17 +80,16 @@ et le nombre de pseudo-absences que vous voulez générer. Sauvez
 
 ### Aide R
 
-Fonction BIOMOD\_FormatingData et save :
+Fonction BIOMOD_FormatingData et save :
 
     run.data <- BIOMOD_FormatingData(resp.var = XXX, # Points de presence de l'espece
-                                     expl.var = YYY, # Donnees environnemental de calibration : climat 1950-2000
+                                     expl.var = YYY, # Donnees environnemental de calibration : climat 1970-2000
                                      resp.name = "Nom_espece", # Nom de l'espece
                                      PA.nb.rep = X, # Nombre de runs de pseudo-absences
                                      PA.nb.absences = length(XXX)) # Nombre de pseudo-absences echantillonnees a chaque iteration
     save(run.data, file = "run.data.RData")
 
-4. Calibration des modèles
-==========================
+# 4. Calibration des modèles
 
 ### Objectifs
 
@@ -121,11 +106,11 @@ Fonction `BIOMOD_Modeling`
     BIOMOD_Modeling(run.data, # Objet preparatoire
                     models =  c('XXX', 'YYY', 'ZZZ'), # Modeles que l'on va faire tourner
                     NbRunEval = X, # Nombre de runs d'evaluation
-                    DataSplit = X, # Quantite de donnees utilisees pour la validation croisee des modeles
-                    # X% pour la calibration, (100 - X)% pour la validation)
+                    DataSplit = X, # Séparation du jeu de données pour la 
+                    # validation croisée :
+                    # X% pour la calibration, (100 - X)% pour la validation
 
-5. Création du modèle d’ensemble
-================================
+# 5. Création du modèle d’ensemble
 
 ### Objectifs
 
@@ -154,8 +139,7 @@ Fonction `BIOMOD_EnsembleModeling`
                             prob.mean.weight = X # Moyenne ponderee par les evals des modeles
                             )
 
-6.1 Projection des cartes actuelles
-===================================
+# 6.1 Projection des cartes actuelles
 
 ### Objectifs 1
 
@@ -187,18 +171,16 @@ Faites la conversion en présence-absence en optimisant la valeur du TSS.
 Fonction `BIOMOD_EnsembleForecasting`
 
     BIOMOD_EnsembleForecasting(EM.output = em.runs,  # Objet issu de l'etape 5 (paramétrisation de l'ensemble modelling)
-                               projection.output = projection.current, # Projections a rassembler pour l'ensemble forecasting
+                               projection.output = <objet créé par BIOMOD_Projection>, # Projections a rassembler pour l'ensemble forecasting
                                binary.meth = "TSS")
 
-6.2 Projection des cartes futures
-=================================
+# 6.2 Projection des cartes futures
 
 Projetez ensuite les cartes de répartition futures suivant les deux
 scénarios en veillant bien à mettre des **noms explicites**, en
 reproduisant l’étape **6.1** pour chaque scénario.
 
-7. Evaluation des modèles
-=========================
+# 7. Evaluation des modèles
 
 ### Objectifs
 
@@ -217,8 +199,7 @@ ggplot2 :
       geom_boxplot() + 
       facet_grid(Metric ~ .)
 
-8. Affichage des cartes de suitability
-======================================
+# 8. Affichage des cartes de suitability
 
 ### Objectifs
 
@@ -226,7 +207,7 @@ Affichez les cartes de suitability avec les sorties de
 `BIOMOD_EnsembleForecasting` de biomod2. Maintenant, refaites ces cartes
 mais cette fois-ci en chargeant les rasters depuis le disque dur sans
 passer par biomod. Elles sont localisées dans le dossier de votre
-espèce, puis dans le sous-dossier proj\_current (ou
+espèce, puis dans le sous-dossier proj_current (ou
 proj\_<nom de votre projection>). Dans ce sous-dossier il y a plusieurs
 fichiers. Chargez le fichier issu du modèle d’ensemble qui n’est pas
 converti en binaire.
@@ -235,8 +216,7 @@ converti en binaire.
 
 Charger avec la fonction `stack` du package `raster`
 
-9. Affichage des aires bioclimatiques potentielles (« présence-absence »)
-=========================================================================
+# 9. Affichage des aires bioclimatiques potentielles (« présence-absence »)
 
 ### Objectifs
 
@@ -247,18 +227,18 @@ taille de l’aire actuelle de l’espèce.
 
 ### Aide R
 
-La fonction `area` de raster donne la surface en km² de chaque pixel.
+La fonction `area()` de raster donne la surface en km² de chaque pixel.
+La fonction `global()` permet de faire des opérations sur un raster,
+telles que la somme.
 
-10. Effet des changements climatiques sur la probabilité de présence de l’espèce
-================================================================================
+# 10. Effet des changements climatiques sur la probabilité de présence de l’espèce
 
 ### Objectifs
 
 Affichez simultanément les cartes actuelles et futures de probabilité de
 présence de l’espèce. Qu’en déduisez-vous ?
 
-11. Changements prédits de l’aire bioclimatique potentielle
-===========================================================
+# 11. Changements prédits de l’aire bioclimatique potentielle
 
 ### Objectifs
 

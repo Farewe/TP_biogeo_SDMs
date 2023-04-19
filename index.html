@@ -354,10 +354,8 @@ répartition</h1>
 </div>
 
 
-<p>Vous pouvez choisir parmi trois espèces différentes quelle
-répartition vous souhaitez modéliser. Veillez à bien mettre dans votre
-répertoire de travail R tous les fichiers de l’espèce sur laquelle vous
-souhaitez travailler.</p>
+<p>Vous allez modéliser la distribution potentielle de l’espèce <em>Neon
+valentulus</em>.</p>
 <div id="préparation-des-données" class="section level1">
 <h1>Préparation des données</h1>
 <p><a href="https://borisleroy.com/files/TP_biogeo_SDMs.zip">Téléchargez
@@ -557,8 +555,9 @@ dur.</p>
 <pre><code>BIOMOD_Modeling(run_data, # Objet preparatoire
                 models =  c(&#39;XXX&#39;, &#39;YYY&#39;, &#39;ZZZ&#39;), # Modeles que l&#39;on va faire tourner
                 nb.rep = X, # Nombre de runs d&#39;evaluation
-                data.split.perc = Y, # Quantite de donnees utilisees pour la validation croisee des modeles
-                # X% pour la calibration, (100 - X)% pour la validation)
+                data.split.perc = Y,  # Séparation du jeu de données pour la 
+                    # validation croisée :
+                    # X% pour la calibration, (100 - X)% pour la validation
                 prevalence = 0.5, # Equilibre des poids entre présences et pseudo-absences
 )</code></pre>
 </div>
@@ -681,8 +680,9 @@ le nom est identique qu’à l’étape 8, mais il contient
 </div>
 <div id="aide-r-7" class="section level3">
 <h3>Aide R</h3>
-<p>La fonction <code>cellSize()</code> de terra donne la surface en km²
-de chaque pixel.</p>
+<p>La fonction <code>cellSize()</code> de <code>terra</code> donne la
+surface en km² de chaque pixel. La fonction <code>global()</code> permet
+de faire des opérations sur un raster, telles que la somme.</p>
 </div>
 </div>
 <div id="effet-des-changements-climatiques-sur-la-suitability-de-lespèce" class="section level1">

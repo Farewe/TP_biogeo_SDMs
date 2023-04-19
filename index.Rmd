@@ -5,7 +5,8 @@ output:
 ---
 
 
-Vous pouvez choisir parmi trois espèces différentes quelle répartition vous souhaitez modéliser. Veillez à bien mettre dans votre répertoire de travail R tous les fichiers de l’espèce sur laquelle vous souhaitez travailler.
+Vous allez modéliser la distribution potentielle de l’espèce *Neon
+valentulus*.
 
 # Préparation des données
 
@@ -112,8 +113,9 @@ Fonction `BIOMOD_Modeling()`
 BIOMOD_Modeling(run_data, # Objet preparatoire
                 models =  c('XXX', 'YYY', 'ZZZ'), # Modeles que l'on va faire tourner
                 nb.rep = X, # Nombre de runs d'evaluation
-                data.split.perc = Y, # Quantite de donnees utilisees pour la validation croisee des modeles
-                # X% pour la calibration, (100 - X)% pour la validation)
+                data.split.perc = Y,  # Séparation du jeu de données pour la 
+                    # validation croisée :
+                    # X% pour la calibration, (100 - X)% pour la validation
                 prevalence = 0.5, # Equilibre des poids entre présences et pseudo-absences
 )
 ```
@@ -222,8 +224,9 @@ Chargez les cartes binaires localisées dans le même sous-dossier qu’à l’�
 Calculez la taille de l’aire actuelle de l’espèce. 
 
 ### Aide R
-La fonction `cellSize()` de terra donne la surface en km² de chaque pixel.
-
+La fonction `cellSize()` de `terra` donne la surface en km² de chaque pixel.
+La fonction `global()` permet de faire des opérations sur un raster,
+telles que la somme.
 
 # 10. Effet des changements climatiques sur la suitability de l’espèce
 
