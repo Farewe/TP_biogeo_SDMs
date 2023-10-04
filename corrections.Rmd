@@ -44,7 +44,7 @@ plot(wm, add = TRUE)
 ```{r}
 run_data <- BIOMOD_FormatingData(resp.name = "Neonvalentulus", # Nom de l'espece
                                  resp.var = P_points, # Points de presence de l'espece
-                                 expl.var = current, # Donnees environnemental de calibration : climat 1950-2000
+                                 expl.var = current, # Donnees environnemental de calibration : climat 1960-1990
                                  PA.nb.rep = 2, # Nombre de runs de pseudo-absences
                                  PA.nb.absences = 1000) # Nombre de pseudo-absences echantillonnees a chaque tour
 # On sauve l'objet a chaque fois :
