@@ -8,8 +8,8 @@ setwd("Phelsumagrandis/")
 
 # Chargement des données climatiques
 current <- rast("current.tif")
-futuressp245 <- rast("future245.tif")
-futuressp585 <- rast("future585.tif")
+future245 <- rast("future245.tif")
+future585 <- rast("future585.tif")
 
 
 
