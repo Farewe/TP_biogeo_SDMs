@@ -46,7 +46,8 @@ run_data <- BIOMOD_FormatingData(resp.name = "Neonvalentulus", # Nom de l'espece
                                  resp.var = P_points, # Points de presence de l'espece
                                  expl.var = current, # Donnees environnemental de calibration : climat 1950-2000
                                  PA.nb.rep = 2, # Nombre de runs de pseudo-absences
-                                 PA.nb.absences = 1000) # Nombre de pseudo-absences echantillonnees a chaque tour
+                                 PA.nb.absences = 1000, # Nombre de pseudo-absences echantillonnees a chaque tour
+                                 PA.strategy = "random") # Stratégie d'échantillonnages des pseudo-absences
 # On sauve l'objet a chaque fois :
 save(run_data, file = "run_data")
 ```
@@ -55,7 +56,7 @@ save(run_data, file = "run_data")
 
 ```{r}
 model_runs <- BIOMOD_Modeling(run_data, # Objet preparatoire
-                              models =  c('GLM', 'RF', 'GBM'), # Modeles que l'on va faire tourner
+                              models =  c('GLM', 'GAM', 'GBM'), # Modeles que l'on va faire tourner
                               nb.rep = 2, # Nombre de runs d'evaluation
                               data.split.perc = 80, # Quantite de donnees utilisees pour la validation croisee des modeles
                               # 80% pour la calibration, 20% pour la validation
