@@ -19,7 +19,7 @@ zip(zipfile = 'Atelier 2.zip',
               "Problematique atelier 2.docx"))
 
 zip(zipfile = 'Atelier 3.zip',
-    files = c('Script_modelling_dp.R',
+    files = c('Script_modelling_pg.R',
               "Phelsumagrandis/current.tif",
               "Phelsumagrandis/future245.tif",
               "Phelsumagrandis/future585.tif",
