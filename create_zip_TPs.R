@@ -1,3 +1,5 @@
+file.remove(c("Atelier 1.zip", "Atelier 2.zip", "Atelier 3.zip"))
+
 zip(zipfile = 'Atelier 1.zip',
     files = c('Script_modelling_dp.R',
               "Dolomedesplantarius/current.tif",
