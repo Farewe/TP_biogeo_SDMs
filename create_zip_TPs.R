@@ -1,4 +1,5 @@
-file.remove(c("Atelier 1.zip", "Atelier 2.zip", "Atelier 3.zip"))
+file.remove(c("Atelier 1.zip", "Atelier 2.zip", "Atelier 3.zip",
+              "TP_biogeo_SDMs.zip"))
 
 zip(zipfile = 'Atelier 1.zip',
     files = c('Script_modelling_dp.R',
@@ -28,3 +29,7 @@ zip(zipfile = 'Atelier 3.zip',
               "Phelsumagrandis/P_points.RDS",
               "Phelsumagrandis/current.tif",
               "Problematique atelier 3.docx"))
+
+
+zip(zipfile = "TP_biogeo_SDMs",
+    files = c("Atelier 1.zip", "Atelier 2.zip", "Atelier 3.zip"))
