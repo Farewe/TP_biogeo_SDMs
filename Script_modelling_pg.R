@@ -42,6 +42,7 @@ run_data <- BIOMOD_FormatingData(resp.name = "Phelsumagrandis", # Nom de l'espec
 #### Etape 2 : calibration des modeles ####
 model_runs <- BIOMOD_Modeling(run_data, # Objet preparatoire
                               models =  c('GLM', 'MARS', 'GBM'), # Modeles que l'on va faire tourner
+                              CV.strategy = "random", # Stratégie de validation croisée
                               CV.nb.rep = 2, # Nombre de runs d'evaluation
                               CV.perc = 0.8, # Quantite de donnees utilisees pour la validation croisee des modeles
                               # 80% pour la calibration, 20% pour la validation

@@ -35,6 +35,7 @@ run_data <- BIOMOD_FormatingData(resp.name = "Dolomedesplantarius", # Nom de l'e
 #### Etape 2 : calibration des modeles ####
 model_runs <- BIOMOD_Modeling(run_data, # Objet preparatoire
                               models =  c('GLM', 'MARS', 'RF'), # Modeles que l'on va faire tourner
+                              CV.strategy = "random", # Stratégie de validation croisée 
                               CV.nb.rep = 2, # Nombre de runs d'evaluation
                               CV.perc = 0.8, # Quantite de donnees utilisees pour la validation croisee des modeles
                               # 80% pour la calibration, 20% pour la validation
@@ -175,3 +176,4 @@ ggplot(suitability_fra, aes(x = variable, y = value, col = Lieu)) +
   facet_wrap(~Lieu) + # On separe le graphe par lieu
   ylab("Favorabilité") + xlab ("Scenario") +
   geom_errorbar(aes(ymin = inf, ymax = sup)) # Et les barres d'erreur autour de la moyenne issue de l'ensemble modelling
+
